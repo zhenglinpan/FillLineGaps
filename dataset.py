@@ -53,7 +53,6 @@ class AnimeSketch(Dataset):
                 return cropped, attacked
             budget -= 1
         return cropped, attacked
-        
     
     def add_noise(self, mat, blur_kernels=[5, 3], alphas=[10, 10]):
         """

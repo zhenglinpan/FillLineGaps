@@ -1,7 +1,9 @@
 # file types
 
 # folders
+__pycache__
+
 imgs
 datasets
-__pycache__
 wandb
+models

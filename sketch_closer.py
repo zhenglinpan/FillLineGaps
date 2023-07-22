@@ -75,8 +75,8 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         closed = generator(opened)
         pred_fake = discriminator(closed)
         
-        loss_pixel = criterion_pixel(closed * mask, gt * mask)
-        loss_gan = criterion_gan(pred_fake * mask, target_real * mask)
+        loss_pixel = criterion_pixel(closed, gt)
+        loss_gan = criterion_gan(pred_fake, target_real)
         
         loss_G = loss_pixel * 1.0 + loss_gan * 1.0
         
@@ -108,11 +108,13 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
     lr_scheduler_D.step()
     
     if epoch % 10 == 0:
-        save_image(closed[0], f'imgs/{epoch}_fake.jpg')
-        save_image(gt[0], f'imgs/{epoch}_real.jpg')
+        save_image(closed[0], f'imgs/{epoch}_fake.png')
+        save_image(gt[0], f'imgs/{epoch}_real.png')
+        save_image(opened[0], f'imgs/{epoch}_opened.png')
         
     if epoch % 20 == 0:
         torch.save(generator.state_dict(), f'models/generator_{epoch}.pth')
         torch.save(discriminator.state_dict(), f'models/discriminator_{epoch}.pth')
         
-        
+# TODO 1: Blind Mask
+# TODO 2: JPEG AND PNG √
