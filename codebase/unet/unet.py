@@ -1,12 +1,13 @@
 import os, sys, argparse
 
+sys.path.append('../..')
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
-# from zhenglin.dl.template.v1.train
 from zhenglin.dl.networks.unet import UNet
 from zhenglin.dl.networks.discriminator import Discriminator
 from zhenglin.dl.utils import LinearLambdaLR
