@@ -10,15 +10,18 @@ class AnimeSketch(Dataset):
     def __init__(self, dataroot, patch_size):
         super().__init__()
         self.patch_size = patch_size
-        self.filelist = glob(dataroot + '/*.png')
+        self.filelist = glob(dataroot + '/*.png')[:100]
         print(f"{len(self.filelist)} images found.")
 
     def __getitem__(self, index):
         file = self.filelist[index]
         sketch = cv2.imread(file, cv2.COLOR_BGR2GRAY)   # only b&w is acceptable, so no red or blue lines
-        sketch_patch, attacked = self.crop(sketch, self.patch_size)
-        if attacked:
-            print("========being attacked==========")
+        try:
+            sketch_patch, attacked = self.crop(sketch, self.patch_size)
+            if attacked:
+                print("========being attacked==========")
+        except:
+            print(f"Exception on =============> {file}")
         
         opened, noise_mask = self.add_noise(sketch_patch)
         line_mask = (255 - sketch_patch) // 255
@@ -29,7 +32,7 @@ class AnimeSketch(Dataset):
         # cv2.imwrite('./imgs/line_mask.png', (line_mask * 255).astype(np.uint8))
         # cv2.imwrite('./imgs/noise_mask.png', (noise_mask * 255).astype(np.uint8))
         
-        return {'gt': sketch[None, ...], 'opened': opened[None, ...], 'mask': line_mask[None, ...], 'attack': attacked}
+        return {'gt': sketch_patch[None, ...], 'opened': opened[None, ...], 'mask': line_mask[None, ...], 'attack': attacked}
     
     def __len__(self):
         return len(self.filelist)

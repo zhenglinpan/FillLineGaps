@@ -11,6 +11,10 @@ from zhenglin.dl.networks.unet import UNet
 from zhenglin.dl.networks.discriminator import Discriminator
 from zhenglin.dl.utils import LinearLambdaLR
 
+from tqdm import tqdm
+import wandb
+wandb.init(project="sketch closer")
+
 from dataset import AnimeSketch
 
 parser = argparse.ArgumentParser()
@@ -55,7 +59,7 @@ dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_w
 generator.train()
 discriminator.train()
 
-for epoch in range(args.start_epoch, args.end_epoch + 1):
+for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
     for i, batch in enumerate(dataloader):
         gt = Variable(batch['gt'].type(Tensor)).to(DEVICE)   # line color: black
         opened = Variable(batch['opened'].type(Tensor)).to(DEVICE)
@@ -63,18 +67,18 @@ for epoch in range(args.start_epoch, args.end_epoch + 1):
         attacked = Variable(batch['attack'].type(Tensor)).to(DEVICE)
         
         if attacked:
-            continue
+            continue    # skip this iteration
         
         ##### Generator #####
         optimizer_G.zero_grad()
         
         closed = generator(opened)
-        pred_fake = discriminator(closed, gt)
+        pred_fake = discriminator(closed)
         
         loss_pixel = criterion_pixel(closed * mask, gt * mask)
         loss_gan = criterion_gan(pred_fake * mask, target_real * mask)
         
-        loss_G = loss_pixel * 1. + loss_gan * 1.
+        loss_G = loss_pixel * 1.0 + loss_gan * 1.0
         
         loss_G.backward()
         optimizer_G.step()
@@ -82,13 +86,23 @@ for epoch in range(args.start_epoch, args.end_epoch + 1):
         ##### Discriminator ###
         optimizer_D.zero_grad()
         
-        pred_fake = discriminator(closed.detach(), target_fake)
-        pred_true = discriminator(opened, target_real)
+        pred_fake = discriminator(closed.detach())
+        pred_true = discriminator(opened)
         
-        loss_D = pred_fake * 0.5 + pred_true * 0.5
+        loss_real = criterion_gan(pred_fake, target_fake)
+        loss_fake = criterion_gan(pred_true, target_real)
+        
+        loss_D = loss_real * 0.5 + loss_fake * 0.5
         
         loss_D.backward()
         optimizer_D.step()
+        
+        wandb.log({'loss_G': loss_G.item(), 
+                   'loss_D': loss_D.item(), 
+                   'loss_pixel': loss_pixel.item(),
+                   'loss_gan': loss_gan.item(),
+                   'loss_real': loss_real.item(),
+                   'loss_fake': loss_fake.item()})
         
     lr_scheduler_G.step()
     lr_scheduler_D.step()
