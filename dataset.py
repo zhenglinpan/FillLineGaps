@@ -15,29 +15,32 @@ class AnimeSketch(Dataset):
 
     def __getitem__(self, index):
         file = self.filelist[index]
-        sketch = cv2.imread(file, cv2.COLOR_BGR2GRAY)   # only b&w is acceptable, so no red or blue lines
-        try:
-            sketch_patch, attacked = self.crop(sketch, self.patch_size)
-            if attacked:
-                print("========being attacked==========")
-        except:
-            print(f"Exception on =============> {file}")
+        sketch = cv2.imread(file, cv2.COLOR_BGR2GRAY)   # only b&w is considered, no red or blue lines
+        patch, attacked = self.crop_lines(sketch, self.patch_size)
+        if attacked:
+            print("========being attacked==========")
         
-        opened, noise_mask = self.add_noise(sketch_patch)
-        line_mask = (255 - sketch_patch) // 255
+        # opened, noise_mask = self.add_noise(patch)
+        opened, mask = self.add_lines(patch)
         
         # Ckeck Efficacy
-        # cv2.imwrite('./imgs/sketch_patch.png', sketch_patch)
+        # cv2.imwrite('./imgs/patch.png', patch)
         # cv2.imwrite('./imgs/opened.png', opened)
-        # cv2.imwrite('./imgs/line_mask.png', (line_mask * 255).astype(np.uint8))
-        # cv2.imwrite('./imgs/noise_mask.png', (noise_mask * 255).astype(np.uint8))
+        # cv2.imwrite('./imgs/mask.png', (mask * 255).astype(np.uint8))
         
-        return {'gt': sketch_patch[None, ...], 'opened': opened[None, ...], 'mask': line_mask[None, ...], 'attack': attacked}
+        return {'gt': patch[None, ...], 
+                'opened': opened[None, ...], 
+                'mask': mask[None, ...], 
+                'attack': attacked  # HACK: raise Exception when batch size is not 1
+                }
     
     def __len__(self):
         return len(self.filelist)
     
-    def crop(self, mat, patch_size):
+    def crop_lines(self, mat, patch_size):
+        """
+            Returns a patch that contains black strokes.
+        """
         h, w = mat.shape
         assert patch_size <= h
         if patch_size == h:
@@ -48,27 +51,55 @@ class AnimeSketch(Dataset):
         while budget:
             x, y = np.random.randint(0, h-patch_size), np.random.randint(0, w-patch_size)
             cropped = mat[x: x + patch_size, y: y + patch_size]
-            if np.sum(cropped) < patch_size * patch_size * 255:
+            if np.sum(cropped) < patch_size * patch_size * 255 * 0.95:
                 attacked = False
                 return cropped, attacked
             budget -= 1
         return cropped, attacked
     
-    def add_noise(self, mat, blur_kernels=[5, 3], alphas=[10, 10]):
+    def add_blob(self, mat, kernel_size=[5, 3], kernel_nums=[10, 10]):
         """
+            Simulate opening of strokes by adding white blobs as noise.
             mat: size([64, 64])
-            :blur_kernels para: sizes of square blur kernel,
-            :alpha para: how many times will the blurs happen for each kernel
+            :kernel_size para: sizes of square blur kernel,
+            :kernel_nums para: how many times will the blurs happen for each kernel
         """
-        inv_mat = 255 - mat
-        mask = np.ones_like(mat)
-        for bk_size, alpha in zip(blur_kernels, alphas):
-            for _ in range(alpha):
+        mask = np.zeros_like(mat)
+        for bk_size, num in zip(kernel_size, kernel_nums):
+            for _ in range(num):
                 x = np.random.randint(0, mat.shape[0] - bk_size)
                 y = np.random.randint(0, mat.shape[1] - bk_size)
                 
-                mask[x : x + bk_size, y : y + bk_size] = 0
+                mask[x : x + bk_size, y : y + bk_size] = 255
             
-        return 255 - (inv_mat * mask), mask
-            
+        return cv2.bitwise_or(mat, mask), mask // 255
+    
+    def add_lines(self, mat, line_widths=[1], line_numbers=[3]):
+        """
+            Simulate opening of strokes by adding white lines as noise.
+        """
+        assert len(line_widths) == len(line_numbers)
+        h, w = mat.shape
+        mask = np.zeros_like(mat)
         
+        for lw, ln in zip(line_widths, line_numbers):
+            for _ in range(ln):
+                edge = np.random.randint(4)
+
+                if edge == 0:  # Top edge
+                    start_x, start_y = np.random.randint(0, w), 0
+                    end_x, end_y = np.random.randint(0, w), h
+                elif edge == 1:  # Right edge
+                    start_x, start_y = w, np.random.randint(0, h)
+                    end_x, end_y = 0, np.random.randint(0, h)
+                elif edge == 2:  # Bottom edge
+                    start_x, start_y = np.random.randint(0, w), h
+                    end_x, end_y = np.random.randint(0, w), 0
+                else:  # Left edge
+                    start_x, start_y = 0, np.random.randint(0, h)
+                    end_x, end_y = w, np.random.randint(0, h)
+
+                # Draw the line on the mask
+                cv2.line(mask, (start_x, start_y), (end_x, end_y), (255,), lw)
+
+        return cv2.bitwise_or(mat, mask), mask // 255

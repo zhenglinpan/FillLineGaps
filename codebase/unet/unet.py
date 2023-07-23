@@ -13,14 +13,14 @@ from zhenglin.dl.networks.discriminator import Discriminator
 from zhenglin.dl.utils import LinearLambdaLR
 
 from tqdm import tqdm
-import wandb
-wandb.init(project="sketch closer")
+# import wandb
+# wandb.init(project="sketch closer")
 
 from dataset import AnimeSketch
 
 parser = argparse.ArgumentParser()
 ### dataset args
-parser.add_argument('--dataroot', type=str, default='./datasets', help='root directory of the dataset')
+parser.add_argument('--dataroot', type=str, default='/home/zhenglin/AnimationSketchCloser/datasets', help='root directory of the dataset')
 parser.add_argument('--patch_size', type=int, default=128, help='size of the data crop (squared assumed)')
 parser.add_argument('--input_nc', type=int, default=1, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=1, help='number of channels of output data')
@@ -64,7 +64,7 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
     for i, batch in enumerate(dataloader):
         gt = Variable(batch['gt'].type(Tensor)).to(DEVICE)   # line color: black
         opened = Variable(batch['opened'].type(Tensor)).to(DEVICE)
-        mask = Variable(batch['mask'].type(Tensor)).to(DEVICE)  # range: 0 - 1  # mask 可能不利，因为gt不一定是对的
+        mask = Variable(batch['mask'].type(Tensor)).to(DEVICE)
         attacked = Variable(batch['attack'].type(Tensor)).to(DEVICE)
         
         if attacked:
@@ -88,7 +88,7 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         optimizer_D.zero_grad()
         
         pred_fake = discriminator(closed.detach())
-        pred_true = discriminator(opened)
+        pred_true = discriminator(gt)
         
         loss_real = criterion_gan(pred_fake, target_fake)
         loss_fake = criterion_gan(pred_true, target_real)
@@ -98,12 +98,12 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         loss_D.backward()
         optimizer_D.step()
         
-        wandb.log({'loss_G': loss_G.item(), 
-                   'loss_D': loss_D.item(), 
-                   'loss_pixel': loss_pixel.item(),
-                   'loss_gan': loss_gan.item(),
-                   'loss_real': loss_real.item(),
-                   'loss_fake': loss_fake.item()})
+        # wandb.log({'loss_G': loss_G.item(), 
+        #            'loss_D': loss_D.item(), 
+        #            'loss_pixel': loss_pixel.item(),
+        #            'loss_gan': loss_gan.item(),
+        #            'loss_real': loss_real.item(),
+        #            'loss_fake': loss_fake.item()})
         
     lr_scheduler_G.step()
     lr_scheduler_D.step()
@@ -112,6 +112,7 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         save_image(closed[0], f'imgs/{epoch}_fake.png')
         save_image(gt[0], f'imgs/{epoch}_real.png')
         save_image(opened[0], f'imgs/{epoch}_opened.png')
+        save_image(mask[0], f'imgs/{epoch}_mask.png')
         
     if epoch % 20 == 0:
         torch.save(generator.state_dict(), f'models/generator_{epoch}.pth')
