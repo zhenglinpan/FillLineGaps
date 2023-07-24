@@ -8,7 +8,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
-from zhenglin.dl.networks.unet import UNet
+from model import ResNet18
 from zhenglin.dl.networks.discriminator import Discriminator
 from zhenglin.dl.utils import LinearLambdaLR
 
@@ -37,7 +37,7 @@ args = parser.parse_args()
 ### set gpu device
 DEVICE = 0
 
-generator = UNet(1, 1, 0).to(DEVICE)
+generator = ResNet18().to(DEVICE)
 discriminator = Discriminator(1, 1).to(DEVICE)
 
 criterion_gan = nn.L1Loss().to(DEVICE)
@@ -76,7 +76,7 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         closed = generator(opened)
         # pred_fake = discriminator(closed)
         
-        loss_pixel = criterion_pixel(closed, gt)
+        loss_pixel = criterion_pixel(closed * mask, gt * mask)
         # loss_gan = criterion_gan(pred_fake, target_real)
         
         # loss_G = loss_pixel * 1.0 + loss_gan * 1.0
