@@ -13,6 +13,7 @@ from zhenglin.dl.networks.discriminator import Discriminator
 from zhenglin.dl.utils import LinearLambdaLR
 
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 # import wandb
 # wandb.init(project="sketch closer")
 
@@ -21,14 +22,14 @@ from dataset import AnimeSketch
 parser = argparse.ArgumentParser()
 ### dataset args
 parser.add_argument('--dataroot', type=str, default='/home/zhenglin/AnimationSketchCloser/datasets', help='root directory of the dataset')
-parser.add_argument('--patch_size', type=int, default=128, help='size of the data crop (squared assumed)')
+parser.add_argument('--patch_size', type=int, default=32, help='size of the data crop (squared assumed)')
 parser.add_argument('--input_nc', type=int, default=1, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=1, help='number of channels of output data')
 parser.add_argument('--num_workers', type=int, default=4, help='number of cpu threads to use during batch generation')
 ### training args
 parser.add_argument('--start_epoch', type=int, default=0, help='starting epoch')
-parser.add_argument('--end_epoch', type=int, default=200, help='number of epochs of training')
-parser.add_argument('--decay_epoch', type=int, default=100, help='epoch to start linearly decaying the learning rate to 0')
+parser.add_argument('--end_epoch', type=int, default=300, help='number of epochs of training')
+parser.add_argument('--decay_epoch', type=int, default=200, help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
 parser.add_argument('--resume', action="store_true", help='continue training from a checkpoint')
@@ -67,7 +68,7 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         mask = Variable(batch['mask'].type(Tensor)).to(DEVICE)
         attacked = Variable(batch['attack'].type(Tensor)).to(DEVICE)
         
-        if attacked:
+        if any(attacked):
             continue    # skip this iteration
         
         ##### Generator #####
@@ -76,11 +77,11 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         closed = generator(opened)
         # pred_fake = discriminator(closed)
         
-        loss_pixel = criterion_pixel(closed * mask, gt * mask)
+        loss_pixel = criterion_pixel(closed, gt)
         # loss_gan = criterion_gan(pred_fake, target_real)
         
         # loss_G = loss_pixel * 1.0 + loss_gan * 1.0
-        loss_G = loss_pixel * 1.0
+        loss_G = loss_pixel * 100.0
         
         loss_G.backward()
         optimizer_G.step()
@@ -109,12 +110,12 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
     lr_scheduler_G.step()
     # lr_scheduler_D.step()
     
-    if epoch % 10 == 0:
+    if epoch % 20 == 0:       
         save_image(closed[0], f'imgs/{epoch}_fake.png')
         save_image(gt[0], f'imgs/{epoch}_real.png')
         save_image(opened[0], f'imgs/{epoch}_opened.png')
         save_image(mask[0], f'imgs/{epoch}_mask.png')
         
-    if epoch % 20 == 0:
+    if epoch % 50 == 0:
         torch.save(generator.state_dict(), f'models/generator_{epoch}.pth')
         # torch.save(discriminator.state_dict(), f'models/discriminator_{epoch}.pth')
