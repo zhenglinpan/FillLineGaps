@@ -16,6 +16,8 @@ from tqdm import tqdm
 # import wandb
 # wandb.init(project="sketch closer")
 
+from zhenglin.dl.utils import summary
+
 from dataset import AnimeSketch
 
 parser = argparse.ArgumentParser()
@@ -62,8 +64,8 @@ discriminator.train()
 
 for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
     for i, batch in enumerate(dataloader):
-        gt = Variable((batch['gt']/255).type(Tensor)).to(DEVICE)   # line color: black
-        opened = Variable((batch['opened']/255).type(Tensor)).to(DEVICE)
+        gt = Variable((batch['gt']).type(Tensor)).to(DEVICE)   # line color: black
+        opened = Variable((batch['opened']).type(Tensor)).to(DEVICE)
         mask = Variable(batch['mask'].type(Tensor)).to(DEVICE)
         attacked = batch['attack']
         
@@ -75,8 +77,6 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         
         closed = generator(opened)
         # pred_fake = discriminator(closed)
-        
-        # closed = gaps + opened
         
         loss_pixel = criterion_pixel(closed, gt)
         # loss_gan = criterion_gan(pred_fake, target_real)
@@ -115,7 +115,7 @@ for epoch in tqdm(range(args.start_epoch, args.end_epoch + 1)):
         save_image(closed[0], f'imgs/{epoch}_fake.png')
         save_image(gt[0], f'imgs/{epoch}_real.png')
         save_image(opened[0], f'imgs/{epoch}_opened.png')
-        save_image(mask[0], f'imgs/{epoch}_mask.png')
+        save_image(mask[0] * 255, f'imgs/{epoch}_mask.png')
         
     if epoch % 100 == 0:
         torch.save(generator.state_dict(), f'models/generator_{epoch}.pth')

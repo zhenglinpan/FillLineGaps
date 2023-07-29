@@ -7,10 +7,13 @@ import cv2
 import numpy as np
 
 class AnimeSketch(Dataset):
-    def __init__(self, dataroot, patch_size):
+    def __init__(self, dataroot, patch_size, mode='train'):
         super().__init__()
         self.patch_size = patch_size
-        self.filelist = glob(dataroot + '/*.png')[:100]
+        if mode == 'train':
+            self.filelist = glob(dataroot + '/*.png')[:300]
+        else:
+            self.filelist = glob(dataroot + '/*.png')[300:]
         print(f"{len(self.filelist)} images found.")
 
     def __getitem__(self, index):
@@ -27,10 +30,10 @@ class AnimeSketch(Dataset):
         # cv2.imwrite('./imgs/opened.png', opened)
         # cv2.imwrite('./imgs/mask.png', (mask * 255).astype(np.uint8))
         
-        return {'gt': patch[None, ...], 
-                'opened': opened[None, ...], 
-                'mask': mask[None, ...], 
-                'attack': attacked  # HACK: raise Exception when batch size is not 1
+        return {'gt': patch[None, ...] / 255, 
+                'opened': opened[None, ...] / 255, 
+                'mask': mask[None, ...] / 255, 
+                'attack': attacked
                 }
     
     def __len__(self):
@@ -73,37 +76,44 @@ class AnimeSketch(Dataset):
             
         return cv2.bitwise_or(mat, mask), mask // 255
     
-    def add_lines(self, mat, line_widths=[1, 2], line_numbers=[3, 1]):
+    def add_lines(self, mat, line_widths=[1, 2], line_numbers=[10, 3], mode="strike"):
         """
-            Simulate opening of strokes by adding white lines as noise.
+            Simulate openings of strokes by adding white lines as noise.
         """
         assert len(line_widths) == len(line_numbers)
         h, w = mat.shape
         
         dst = mat.copy()
-        budget = 100
-        while np.sum(dst - mat) == 0 and budget > 0:
-            budget -= 1
-            mask = np.zeros_like(mat)
+        if mode == "strike":    ### lines go through the entile image
+            budget = 100
+            while np.sum(dst - mat) == 0 and budget > 0:
+                budget -= 1
+                mask = np.zeros_like(mat)
+                for lw, ln in zip(line_widths, line_numbers):
+                    for _ in range(ln):
+                        edge = np.random.randint(4)
+                        if edge == 0:  # Top edge
+                            start_x, start_y = np.random.randint(0, w), 0
+                            end_x, end_y = np.random.randint(0, w), h
+                        elif edge == 1:  # Right edge
+                            start_x, start_y = w, np.random.randint(0, h)
+                            end_x, end_y = 0, np.random.randint(0, h)
+                        elif edge == 2:  # Bottom edge
+                            start_x, start_y = np.random.randint(0, w), h
+                            end_x, end_y = np.random.randint(0, w), 0
+                        else:  # Left edge
+                            start_x, start_y = 0, np.random.randint(0, h)
+                            end_x, end_y = w, np.random.randint(0, h)
+                        # Draw the line on the mask
+                        cv2.line(mask, (start_x, start_y), (end_x, end_y), (255,), lw)
+                dst = cv2.bitwise_or(mat, mask)
+        elif mode == "free":    ### some pieces of lines scatter randomly, need more line_numbers
             for lw, ln in zip(line_widths, line_numbers):
                 for _ in range(ln):
-                    edge = np.random.randint(4)
-
-                    if edge == 0:  # Top edge
-                        start_x, start_y = np.random.randint(0, w), 0
-                        end_x, end_y = np.random.randint(0, w), h
-                    elif edge == 1:  # Right edge
-                        start_x, start_y = w, np.random.randint(0, h)
-                        end_x, end_y = 0, np.random.randint(0, h)
-                    elif edge == 2:  # Bottom edge
-                        start_x, start_y = np.random.randint(0, w), h
-                        end_x, end_y = np.random.randint(0, w), 0
-                    else:  # Left edge
-                        start_x, start_y = 0, np.random.randint(0, h)
-                        end_x, end_y = w, np.random.randint(0, h)
-
-                    # Draw the line on the mask
+                    start_x, start_y = np.random.randint(0, w), np.random.randint(0, h)
+                    end_x, end_y = np.random.randint(0, w), np.random.randint(0, h)
+                    
                     cv2.line(mask, (start_x, start_y), (end_x, end_y), (255,), lw)
-                    dst = cv2.bitwise_or(mat, mask)
-
+                dst = cv2.bitwise_or(mat, mask)
+                            
         return dst, mask // 255
