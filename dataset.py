@@ -19,7 +19,7 @@ class AnimeSketch(Dataset):
     def __getitem__(self, index):
         file = self.filelist[index]
         sketch = cv2.imread(file, cv2.IMREAD_GRAYSCALE)   # only b&w is considered, no red or blue lines
-        patch, attacked = self.crop_lines(sketch, self.patch_size)
+        patch, attacked = self.crop_patch(sketch, self.patch_size)
         if attacked:
             print("========being attacked==========")
         
@@ -39,7 +39,7 @@ class AnimeSketch(Dataset):
     def __len__(self):
         return len(self.filelist)
     
-    def crop_lines(self, mat, patch_size):
+    def crop_patch(self, mat, patch_size):
         """
             Returns a patch that contains black strokes.
         """
