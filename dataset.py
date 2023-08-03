@@ -7,43 +7,55 @@ import cv2
 import numpy as np
 
 class AnimeSketch(Dataset):
-    def __init__(self, dataroot, patch_size, mode='train'):
+    def __init__(self, dataroot, patch_size=256, mode='train', color=False):
         super().__init__()
         self.patch_size = patch_size
+        self.color = color
         if mode == 'train':
             self.filelist = glob(dataroot + '/*.png')[:300]
         else:
             self.filelist = glob(dataroot + '/*.png')[300:]
-        print(f"{len(self.filelist)} images found.")
+        print(f"{len(self.filelist)} images found at {dataroot}.")
 
     def __getitem__(self, index):
         file = self.filelist[index]
-        sketch = cv2.imread(file, cv2.IMREAD_GRAYSCALE)   # only b&w is considered, no red or blue lines
-        patch, attacked = self.crop_patch(sketch, self.patch_size)
-        if attacked:
-            print("========being attacked==========")
         
-        # opened, noise_mask = self.add_blobs(patch)
+        if self.color:
+            sketch = cv2.imread(file)
+        else:
+            sketch = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+            
+        patch, attacked = self.crop_patch(sketch, self.patch_size)
+        
         opened, mask = self.add_lines(patch)
         
         # cv2.imwrite('./imgs/patch.png', patch)
         # cv2.imwrite('./imgs/opened.png', opened)
         # cv2.imwrite('./imgs/mask.png', (mask * 255).astype(np.uint8))
         
-        return {'gt': patch[None, ...] / 255, 
-                'opened': opened[None, ...] / 255, 
-                'mask': mask[None, ...] / 255, 
-                'attack': attacked
-                }
+        if self.color:
+            gt = patch.transpose(2, 0, 1) / 255   # [3, 256, 256]
+            opened = opened.transpose(2, 0, 1) / 255
+        else:
+            gt = patch[None, ...] / 255     # [1, 256, 256]
+            opened = opened[None, ...] / 255
+        mask = mask[None, ...] / 255
+
+        return {'gt': gt, 'opened': opened, 'mask': mask, 'attack': attacked}
     
     def __len__(self):
         return len(self.filelist)
     
     def crop_patch(self, mat, patch_size):
         """
-            Returns a patch that contains black strokes.
+            Returns a patch that contains strokes.
         """
-        h, w = mat.shape
+        
+        if self.color:
+            h, w, _ = mat.shape
+        else:
+            h, w = mat.shape
+        
         assert patch_size <= h
         if patch_size == h:
             return mat
@@ -53,42 +65,34 @@ class AnimeSketch(Dataset):
         while budget:
             x, y = np.random.randint(0, h-patch_size), np.random.randint(0, w-patch_size)
             cropped = mat[x: x + patch_size, y: y + patch_size]
-            if patch_size * patch_size * 255 * 0.9 < np.sum(cropped) < patch_size * patch_size * 255 * 0.97:
+            if self.color:
+                condition = patch_size * patch_size * 255 * 0.9 * 3 < np.sum(cropped) < patch_size * patch_size * 255 * 0.97 * 3
+            else:
+                condition = patch_size * patch_size * 255 * 0.9 < np.sum(cropped) < patch_size * patch_size * 255 * 0.97
+            
+            if condition:
                 attacked = False
                 return cropped, attacked
             budget -= 1
+        
         return cropped, attacked
-    
-    def add_blobs(self, mat, kernel_size=[5, 3], kernel_nums=[10, 10]):
-        """
-            Simulate opening of strokes by adding white blobs as noise.
-            mat: size([64, 64])
-            :kernel_size para: sizes of square blur kernel,
-            :kernel_nums para: how many times will the blurs happen for each kernel
-        """
-        mask = np.zeros_like(mat)
-        for bk_size, num in zip(kernel_size, kernel_nums):
-            for _ in range(num):
-                x = np.random.randint(0, mat.shape[0] - bk_size)
-                y = np.random.randint(0, mat.shape[1] - bk_size)
-                
-                mask[x : x + bk_size, y : y + bk_size] = 255
-            
-        return cv2.bitwise_or(mat, mask), mask // 255
     
     def add_lines(self, mat, line_widths=[1, 2], line_numbers=[10, 3], mode="strike"):
         """
             Simulate openings of strokes by adding white lines as noise.
         """
         assert len(line_widths) == len(line_numbers)
-        h, w = mat.shape
+        if self.color:
+            h, w, ch = mat.shape
+        else:
+            h, w = mat.shape
         
         dst = mat.copy()
         if mode == "strike":    ### lines go through the entile image
             budget = 100
             while np.sum(dst - mat) == 0 and budget > 0:
                 budget -= 1
-                mask = np.zeros_like(mat)
+                mask = np.zeros((h, w))
                 for lw, ln in zip(line_widths, line_numbers):
                     for _ in range(ln):
                         edge = np.random.randint(4)
@@ -106,7 +110,11 @@ class AnimeSketch(Dataset):
                             end_x, end_y = w, np.random.randint(0, h)
                         # Draw the line on the mask
                         cv2.line(mask, (start_x, start_y), (end_x, end_y), (255,), lw)
-                dst = cv2.bitwise_or(mat, mask)
+                if self.color:
+                    for c in range(ch):
+                        dst[..., c] = cv2.bitwise_or(np.array(mat[..., c]).astype(np.uint8), np.array(mask).astype(np.uint8))
+                else:
+                    dst = cv2.bitwise_or(np.array(mat).astype(np.uint8), np.array(mask).astype(np.uint8))
         elif mode == "free":    ### some pieces of lines scatter randomly, need more line_numbers
             for lw, ln in zip(line_widths, line_numbers):
                 for _ in range(ln):
