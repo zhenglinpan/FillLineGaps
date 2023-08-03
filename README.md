@@ -1,6 +1,10 @@
 # Fill Line Gaps
 This is a demo tool for filling elusive gaps on lines or corners for sketch, genga and other line art images. 
 
+<p align="left">
+  <img src="https://github.com/zhenglinpan/FillLineGaps/blob/master/others/showcase.jpg" width="600" alt="accessibility text">
+</p>
+
 BEFORE
 <p align="left">
   <img src="https://github.com/zhenglinpan/FillLineGaps/blob/master/others/20230803005208202383053432.gif" width="150" alt="accessibility text">
