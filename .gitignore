@@ -8,3 +8,6 @@ imgs
 datasets
 wandb
 models
+resnet18
+noise2void
+lite_unet
