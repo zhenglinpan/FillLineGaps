@@ -3,12 +3,12 @@ This is a demo tool for filling elusive gaps on lines or corners for sketch, gen
 
 BEFORE
 <p align="left">
-  <img src="https://github.com/ZhenglinPan/ZhenglinPan/blob/main/resources/kirby-kirby-line-sticker.gif" width="150" alt="accessibility text">
+  <img src="https://github.com/zhenglinpan/FillLineGaps/blob/master/others/20230803005208202383053432.gif" width="150" alt="accessibility text">
 </p>
 
 AFTER
 <p align="left">
-  <img src="https://github.com/ZhenglinPan/ZhenglinPan/blob/main/resources/kirby-kirby-line-sticker.gif" width="150" alt="accessibility text">
+  <img src="https://github.com/zhenglinpan/FillLineGaps/blob/master/others/20230803005253202383055274.gif" width="150" alt="accessibility text">
 </p>
 
 A depthwise U-Net is trained on the line art dataset with simulation defect sythesizing approach. The model is able to fill gaps on lines and corners with a single forward pass. The model is trained on a RTX3060 GPU Laptop with 6GB memory. The training takes about 0.5 hours per 100 images in training set.
