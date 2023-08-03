@@ -24,6 +24,7 @@ class AnimeSketch(Dataset):
             sketch = cv2.imread(file)
         else:
             sketch = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+            sketch = cv2.threshold(sketch, 240, 255, cv2.THRESH_BINARY)[1]
             
         patch, attacked = self.crop_patch(sketch, self.patch_size)
         

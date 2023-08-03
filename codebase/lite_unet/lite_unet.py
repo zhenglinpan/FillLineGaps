@@ -39,7 +39,7 @@ args = parser.parse_args()
 ### set gpu device
 DEVICE = 0
 
-generator = UNet(1, 1, 1).to(DEVICE)
+generator = LightUNet(1, 1, 1).to(DEVICE)
 # discriminator = Discriminator(3, 1).to(DEVICE)
 
 criterion_pixel = nn.MSELoss().to(DEVICE)

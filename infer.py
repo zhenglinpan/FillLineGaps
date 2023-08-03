@@ -14,7 +14,7 @@ import time
 DEVICE = 0
 
 # model_dir = '/home/zhenglin/SketchCloser/codebase/lite_unet/models/LightUNet_generator_1000_color_dls.pth'
-model_dir = '/home/zhenglin/SketchCloser/codebase/lite_unet/models/generator_700_mono_mono_fuji.pth'
+model_dir = '/home/zhenglin/SketchCloser/codebase/lite_unet/models/LightUNet_generator_600.pth'
 
 img = cv2.imread('/home/zhenglin/SketchCloser/imgs/frame_1136.png', cv2.IMREAD_GRAYSCALE)
 # img = cv2.imread('/home/zhenglin/SketchCloser/datasets/0171.png')
