@@ -1,7 +1,7 @@
 # Fill Line Gaps
 This is a demo tool for filling elusive gaps on lines or corners for sketch, genga and other line art images. 
 
-使用深度学习方法填补动画原画中线条之间的小缝隙。防止后续上色因为线稿没有闭合导致漏色。
+使用深度学习方法，自动填补动画原画中线条之间的小缝隙。防止后续上色因为线稿没有闭合导致漏色问题（上色打人了）。
 
 **STILL IN EARLY ACCESS**
 **实验性质项目**
