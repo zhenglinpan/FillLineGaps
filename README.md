@@ -37,8 +37,8 @@ A depthwise U-Net is trained on the line art dataset with simulation defect syth
 
 目前使用的网络架构是用深度可分离修改的小型的U-Net，模型参数小于500k，使用的数据集从上述视频中提取并经过退化得到。能够在一次前向传播中对断开的线条进行填补。模拟动画原画绘制过程中存在的线条不封闭情况。模型训练于RTX3060 Laptop上训练，每100张图片(patch size: 256)训练时间大约为0.5小时。
 
-Inference time: ~2s for `1920×1080` per image on RTX3060 GPU Laptop.
-推理速度约为1~2s/张原画，推理设备为RTX3060 Laptop。
+Inference time: /~2s for `1920×1080` per image on RTX3060 GPU Laptop.
+推理速度约为1/~2s/张原画，推理设备为RTX3060 Laptop。
 
 You can configure the `infer.py` to load the models and do your inference. You can download it from [here](https://huggingface.co/seidouz/FillLineGaps).
 用户可以自行修改`infer.py`中的代码进行推理。模型文件可以从[这里](https://huggingface.co/seidouz/FillLineGaps)下载。
