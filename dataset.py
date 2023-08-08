@@ -78,7 +78,7 @@ class AnimeSketch(Dataset):
         
         return cropped, attacked
     
-    def add_lines(self, mat, line_widths=[1, 2], line_numbers=[10, 3], mode="strike"):
+    def add_lines(self, mat, line_widths=[1, 2], line_numbers=[10, 0], mode="strike"):
         """
             Simulate openings of strokes by adding white lines as noise.
         """
