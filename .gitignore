@@ -11,6 +11,7 @@ models
 resnet18
 noise2void
 lite_unet
+unet
 
 # use 'git rm -r --cached ./codebase/unet' to remove files or folder in remote
 
